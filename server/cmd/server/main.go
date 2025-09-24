@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 
-	"github.com/LuisBAndrade/tracker/server/db/internal/database"
+	"github.com/LuisBAndrade/tracker/server/db/database"
 	"github.com/LuisBAndrade/tracker/server/internal/auth"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"

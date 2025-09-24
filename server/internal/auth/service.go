@@ -3,10 +3,11 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
-	"github.com/LuisBAndrade/tracker/server/db/internal/database"
+	"github.com/LuisBAndrade/tracker/server/db/database"
 	"github.com/google/uuid"
 )
 
@@ -37,8 +38,13 @@ func (s *Service) RegisterUser(ctx context.Context, email, password string) (Use
 		return UserDTO{}, err
 	}
 
+	uid, err := uuid.Parse(u.ID)
+	if err != nil {
+		return UserDTO{}, fmt.Errorf("invalid UUID from DB: %w", err)
+	}
+
 	return UserDTO{
-		ID: u.ID,
+		ID: uid,
 		Email: u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
@@ -51,6 +57,10 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (string
 	if err != nil {
 		return "", UserDTO{}, err
 	}
+	uid, err := uuid.Parse(u.ID)
+	if err != nil {
+		return "", UserDTO{}, fmt.Errorf("invalid UUID from DB: %w", err)
+	}
 
 	if err := CheckPassword(password, u.HashedPassword); err != nil {
 		return "", UserDTO{}, err
@@ -62,7 +72,7 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (string
 	}
 
 	dto := UserDTO{
-		ID: u.ID,
+		ID: uid,
 		Email: u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
@@ -72,7 +82,7 @@ func (s *Service) LoginUser(ctx context.Context, email, password string) (string
 }
 
 func (s *Service) RefreshSession(ctx context.Context, refreshToken string) (string, UserDTO, error) {
-	rt, err := s.q.GetRefreshToken(ctx, refreshToken)
+	rt, err := s.q.GetRefreshTokens(ctx, refreshToken)
 	if err != nil || rt.ExpiresAt.Before(time.Now()){
 		return "", UserDTO{}, errors.New("invalid or expired refresh token")
 	}
@@ -81,6 +91,10 @@ func (s *Service) RefreshSession(ctx context.Context, refreshToken string) (stri
 	if err != nil {
 		return "", UserDTO{}, err
 	}
+	uid, err := uuid.Parse(u.ID)
+	if err != nil {
+		return "", UserDTO{}, fmt.Errorf("invalid UUID from DB: %w", err)
+	}
 
 	newAccessToken, err := MakeJWT(uuid.MustParse(u.ID), os.Getenv("JWT_SECRET"), time.Minute)
 	if err != nil {
@@ -88,7 +102,7 @@ func (s *Service) RefreshSession(ctx context.Context, refreshToken string) (stri
 	}
 
 	dto := UserDTO{
-		ID: u.ID,
+		ID: uid,
 		Email: u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
